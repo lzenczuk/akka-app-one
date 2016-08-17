@@ -1,6 +1,11 @@
 package com.github.lzenczuk.akka.course
 
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.FiniteDuration
+
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
   * Created by dev on 17/08/16.
@@ -39,7 +44,11 @@ object CourseMain extends App{
   private val system: ActorSystem = ActorSystem("CourseActorSystem")
   private val greetActorRef: ActorRef = system.actorOf(Props[GreetActor])
 
+  system.scheduler.scheduleOnce(FiniteDuration(3, TimeUnit.SECONDS)){
+    println("Time to finish program")
+    greetActorRef ! End()
+  }
+
   greetActorRef ! GreetMessage("Mark")
   greetActorRef ! GreetMessage("Tom")
-  greetActorRef ! End()
 }
