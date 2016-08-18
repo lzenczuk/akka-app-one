@@ -19,24 +19,32 @@ object MarketActor {
 
 class MarketActor(id:Long) extends Actor with ActorLogging {
 
+  var counter = {
+    log.info("Setting counter to 0")
+    0
+  }
+
   override def receive = {
     case StopMarket(msg) =>
       context stop self
-      log.info(s"Market $id stopped: $msg")
+      log.info(s"Market $id counter $counter stopped: $msg")
+      counter += 1
     case FailMarket(msg) =>
-      log.info(s"Market $id throwing exception: $msg")
+      log.info(s"Market $id counter $counter throwing exception: $msg")
+      counter += 1
       throw MarketException(msg)
     case DoNothingMarket(msg) =>
-      log.info(s"Market $id do nothing: $msg")
+      log.info(s"Market $id counter $counter do nothing: $msg")
+      counter += 1
   }
 
   @scala.throws[Exception](classOf[Exception])
   override def postStop(): Unit = {
-    log.info(s"Marked $id stopped.")
+    log.info(s"Marked $id counter $counter stopped.")
   }
 
   @scala.throws[Exception](classOf[Exception])
   override def postRestart(reason: Throwable): Unit = {
-    log.info(s"Market $id restarted.")
+    log.info(s"Market $id counter $counter restarted.")
   }
 }
