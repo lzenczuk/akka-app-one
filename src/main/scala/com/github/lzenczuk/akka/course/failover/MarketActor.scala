@@ -40,11 +40,17 @@ class MarketActor(id:Long) extends Actor with ActorLogging {
 
   @scala.throws[Exception](classOf[Exception])
   override def postStop(): Unit = {
-    log.info(s"Marked $id counter $counter stopped.")
+    log.info(s"Marked $id counter $counter post stopped.")
+  }
+
+
+  @scala.throws[Exception](classOf[Exception])
+  override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
+    log.info(s"Marked $id counter $counter pre restart.")
   }
 
   @scala.throws[Exception](classOf[Exception])
   override def postRestart(reason: Throwable): Unit = {
-    log.info(s"Market $id counter $counter restarted.")
+    log.info(s"Market $id counter $counter post restarted.")
   }
 }
