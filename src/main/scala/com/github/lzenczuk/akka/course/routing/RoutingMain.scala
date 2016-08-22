@@ -1,11 +1,10 @@
 package com.github.lzenczuk.akka.course.routing
 
-import akka.actor.Actor.Receive
+import java.util.concurrent.atomic.AtomicInteger
+
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props}
 import akka.routing.{FromConfig, RandomGroup}
 import com.github.lzenczuk.akka.course.routing.WorkerActor.WorkerTask
-
-import scala.collection.immutable.Range.Inclusive
 
 /**
   * Created by dev on 22/08/16.
@@ -13,15 +12,14 @@ import scala.collection.immutable.Range.Inclusive
 
 
 object WorkerActor {
-  // TODO - thread safety!!!!!
-  var workersCounter = 0
+  var workersCounter = new AtomicInteger()
 
   case class WorkerTask(n:Int)
 }
 
 class WorkerActor extends Actor with ActorLogging{
-  var workerNumber = WorkerActor.workersCounter
-  WorkerActor.workersCounter+=1
+  var workerNumber = WorkerActor.workersCounter.getAndIncrement()
+
   var counter = 0
 
   override def receive = {
