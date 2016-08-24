@@ -55,6 +55,7 @@ class PersistentCounter(id:Long) extends PersistentActor with ActorLogging {
           log.info(s"State: $state")
           changesCounter+=1
           if(changesCounter>3) {
+            log.info("Take snapshot")
             saveSnapshot(state)
             changesCounter=0
           }
@@ -66,6 +67,7 @@ class PersistentCounter(id:Long) extends PersistentActor with ActorLogging {
           log.info(s"State: $state")
           changesCounter+=1
           if(changesCounter>3) {
+            log.info("Take snapshot")
             saveSnapshot(state)
             changesCounter=0
           }
@@ -80,16 +82,18 @@ class PersistentCounter(id:Long) extends PersistentActor with ActorLogging {
 object PersistenceMain extends App{
   private val system: ActorSystem = ActorSystem("persistent-counter-system")
 
-  private val counter: ActorRef = system.actorOf(Props(new PersistentCounter(3)))
+  private val counter: ActorRef = system.actorOf(Props(new PersistentCounter(4)))
 
   counter ! IncreaseCommand(10)
   counter ! IncreaseCommand(6)
   counter ! DecreaseCommand(11)
   counter ! IncreaseCommand(1)
   counter ! DecreaseCommand(17)
-  counter ! DecreaseCommand(8)
+  counter ! DecreaseCommand(1)
   counter ! IncreaseCommand(6)
-  counter ! IncreaseCommand(3)
+  counter ! IncreaseCommand(15)
+  counter ! DecreaseCommand(7)
+  counter ! DecreaseCommand(2)
 
   Thread.sleep(3000L)
   system.terminate()
