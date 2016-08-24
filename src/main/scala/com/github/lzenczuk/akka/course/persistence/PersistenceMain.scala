@@ -1,5 +1,7 @@
 package com.github.lzenczuk.akka.course.persistence
 
+import java.util.Date
+
 import akka.actor.{ActorLogging, ActorRef, ActorSystem, Props}
 import akka.persistence._
 import com.github.lzenczuk.akka.course.persistence.PersistentCounter.{DecreaseCommand, IncreaseCommand}
@@ -15,9 +17,10 @@ object PersistentCounter {
   case class IncreaseEvent(value:Int)
   case class DecreaseEvent(value:Int)
 
-  case class State(value:Int){
-    def inc(v:Int):State = State(value+v)
-    def dec(v:Int):State = State(value-v)
+  case class State(value:Int, created:Long){
+    // Create new state using copy method of case class that lest to create new instance changing only some fields
+    def inc(v:Int):State = copy(value = value+v)
+    def dec(v:Int):State = copy(value = value-v)
   }
 }
 
@@ -26,7 +29,7 @@ class PersistentCounter(id:Long) extends PersistentActor with ActorLogging {
 
   log.info("Start")
 
-  var state:State = State(0)
+  var state:State = State(0, new Date().getTime)
   var changesCounter = 0
 
   override def persistenceId: String = s"counter-$id"
@@ -82,7 +85,7 @@ class PersistentCounter(id:Long) extends PersistentActor with ActorLogging {
 object PersistenceMain extends App{
   private val system: ActorSystem = ActorSystem("persistent-counter-system")
 
-  private val counter: ActorRef = system.actorOf(Props(new PersistentCounter(4)))
+  private val counter: ActorRef = system.actorOf(Props(new PersistentCounter(5)))
 
   counter ! IncreaseCommand(10)
   counter ! IncreaseCommand(6)
