@@ -1,7 +1,7 @@
 package com.github.lzenczuk.akka.course.persistence
 
 import akka.actor.{ActorLogging, ActorRef, ActorSystem, Props}
-import akka.persistence.{PersistentActor, RecoveryCompleted}
+import akka.persistence._
 import com.github.lzenczuk.akka.course.persistence.PersistentCounter.{DecreaseCommand, IncreaseCommand}
 
 /**
@@ -27,6 +27,7 @@ class PersistentCounter(id:Long) extends PersistentActor with ActorLogging {
   log.info("Start")
 
   var state:State = State(0)
+  var changesCounter = 0
 
   override def persistenceId: String = s"counter-$id"
 
@@ -38,6 +39,9 @@ class PersistentCounter(id:Long) extends PersistentActor with ActorLogging {
     case DecreaseEvent(v) =>
       state = state.dec(v)
       log.info(s"State: $state")
+    case SnapshotOffer(metadata, snapshotState:State) =>
+      log.info(s"Receive snapshot offer: $metadata")
+      state = snapshotState
     case RecoveryCompleted =>
       log.info("Recovery completed!")
   }
@@ -49,34 +53,44 @@ class PersistentCounter(id:Long) extends PersistentActor with ActorLogging {
       persist(IncreaseEvent(v)){
         event =>  state = state.inc(v)
           log.info(s"State: $state")
+          changesCounter+=1
+          if(changesCounter>3) {
+            saveSnapshot(state)
+            changesCounter=0
+          }
       }
     case DecreaseCommand(v) =>
       log.info(s"Decrease command: $v")
       persist(DecreaseEvent(v)){
         event =>  state = state.dec(v)
           log.info(s"State: $state")
+          changesCounter+=1
+          if(changesCounter>3) {
+            saveSnapshot(state)
+            changesCounter=0
+          }
       }
+    case SaveSnapshotSuccess(metadata) =>
+      log.info(s"Snapshot saved $metadata.")
+    case SaveSnapshotFailure(metadata, reason) =>
+      log.error(s"Snapshot save failed $metadata: $reason")
   }
 }
 
 object PersistenceMain extends App{
   private val system: ActorSystem = ActorSystem("persistent-counter-system")
 
-  private val counter: ActorRef = system.actorOf(Props(new PersistentCounter(1)))
+  private val counter: ActorRef = system.actorOf(Props(new PersistentCounter(3)))
 
   counter ! IncreaseCommand(10)
   counter ! IncreaseCommand(6)
   counter ! DecreaseCommand(11)
   counter ! IncreaseCommand(1)
   counter ! DecreaseCommand(17)
+  counter ! DecreaseCommand(8)
+  counter ! IncreaseCommand(6)
+  counter ! IncreaseCommand(3)
 
-  Thread.sleep(2000L)
+  Thread.sleep(3000L)
   system.terminate()
 }
-
-/*
-case SaveSnapshotSuccess(metadata) =>
-      log.info(s"Snapshot saved $metadata.")
-    case SaveSnapshotFailure(metadata, reason) =>
-      log.error(s"Snapshot save failed $metadata: $reason")
- */
