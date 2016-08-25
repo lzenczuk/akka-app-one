@@ -2,9 +2,14 @@ package com.github.lzenczuk.akka.course.persistentfsm
 
 import java.util.Date
 
+import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem, FSM, Props}
 import akka.persistence.fsm._
 import akka.persistence.fsm.PersistentFSM.FSMState
+import akka.persistence.query.{EventEnvelope, PersistenceQuery}
+import akka.persistence.query.journal.leveldb.scaladsl.LeveldbReadJournal
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Source
 import com.github.lzenczuk.akka.course.persistentfsm.MarketFsm._
 
 import scala.reflect._
@@ -47,7 +52,6 @@ object MarketFsm {
   case object CloseMarketEvent extends Event
   case class SuspendMarketEvent(reason:String) extends Event
   case object GradeMarketEvent extends Event
-  case object ShowMarketEvent extends Event
 }
 
 class MarketFsm(name:String, id:Long) extends PersistentFSM[MarketFsm.State, MarketFsm.Market, MarketFsm.Event]{
@@ -149,14 +153,12 @@ class MarketFsm(name:String, id:Long) extends PersistentFSM[MarketFsm.State, Mar
       log.info(s"Market: $market")
       stay()
   }
-
-  initialize()
 }
 
 object PersistentFsmMain extends App{
   private val system: ActorSystem = ActorSystem("market-persistence-system")
 
-  private val marketActor: ActorRef = system.actorOf(Props(new MarketFsm("test1", 1)), "market_1")
+  private val marketActor: ActorRef = system.actorOf(Props(new MarketFsm("test1", 2)), "market_actor")
 
   marketActor ! ShowMarketCommand
   marketActor ! OpenMarketCommand
@@ -175,4 +177,15 @@ object PersistentFsmMain extends App{
 
   Thread.sleep(3000L)
   system.terminate()
+}
+
+object PersistentQueryMain extends App {
+  private val system: ActorSystem = ActorSystem("market-persistence-system")
+  implicit val mat = ActorMaterializer()(system)
+
+  private val queries: LeveldbReadJournal = PersistenceQuery(system).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
+  private val source: Source[EventEnvelope, NotUsed] = queries.eventsByPersistenceId("market-2", 0L, Long.MaxValue)
+
+  source.runForeach{e => println(s"Event: $e")}
+
 }

@@ -2,8 +2,13 @@ package com.github.lzenczuk.akka.course.persistence
 
 import java.util.Date
 
+import akka.NotUsed
 import akka.actor.{ActorLogging, ActorRef, ActorSystem, Props}
 import akka.persistence._
+import akka.persistence.query.{EventEnvelope, PersistenceQuery}
+import akka.persistence.query.journal.leveldb.scaladsl.LeveldbReadJournal
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Source
 import com.github.lzenczuk.akka.course.persistence.PersistentCounter.{DecreaseCommand, IncreaseCommand}
 
 /**
@@ -100,4 +105,15 @@ object PersistenceMain extends App{
 
   Thread.sleep(3000L)
   system.terminate()
+}
+
+object PersistentCounterQueryMain extends App {
+  private val system: ActorSystem = ActorSystem("market-persistence-system")
+  implicit val mat = ActorMaterializer()(system)
+
+  private val queries: LeveldbReadJournal = PersistenceQuery(system).readJournalFor[LeveldbReadJournal](LeveldbReadJournal.Identifier)
+  private val source: Source[EventEnvelope, NotUsed] = queries.eventsByPersistenceId("counter-5", 0L, Long.MaxValue)
+
+  source.runForeach{e => println(s"Event: $e")}
+
 }
