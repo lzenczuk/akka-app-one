@@ -18,9 +18,10 @@ object StreamsMain extends App{
 
   private val source: Source[Int, NotUsed] = Source(1 to 100)
   private val addTen = Flow[Int].map(_+10)
+  private val subTen = Flow[Int].map(_-10)
   private val sink: Sink[Int, Future[Done]] = Sink.foreach[Int](println)
 
-  source.via(addTen).runWith(sink).andThen{
+  source.via(addTen).via(subTen).runWith(sink).andThen{
     case _ =>
       println("End")
       system.terminate()
