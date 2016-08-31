@@ -2,8 +2,9 @@ package com.github.lzenczuk.akka.course.streams
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Tcp.{IncomingConnection, ServerBinding}
 import akka.{Done, NotUsed}
-import akka.stream.scaladsl.{Flow, RunnableGraph, Sink, Source}
+import akka.stream.scaladsl.{Flow, RunnableGraph, Sink, Source, Tcp}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -52,6 +53,13 @@ object StreamsMain extends App{
     .to(Sink.foreach(n => println(s"Stream 2: $n")))
   runnableGraph.run()
 
-  Thread.sleep(1000L)
-  system.terminate()
+  private val tcpSource: Source[IncomingConnection, Future[ServerBinding]] = Tcp().bind("127.0.0.1",8083)
+  private val addressFlow: Flow[IncomingConnection, String, NotUsed] = Flow[IncomingConnection].map(ic => {
+    ic.remoteAddress.getAddress.getHostAddress+":"+ic.remoteAddress.getPort
+  })
+
+  tcpSource.via(addressFlow).runWith(Sink.foreach(println))
+
+  //Thread.sleep(1000L)
+  //system.terminate()
 }
