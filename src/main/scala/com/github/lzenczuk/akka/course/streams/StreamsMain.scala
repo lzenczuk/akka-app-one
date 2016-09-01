@@ -1,10 +1,13 @@
 package com.github.lzenczuk.akka.course.streams
 
+import java.nio.charset.Charset
+
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Tcp.{IncomingConnection, ServerBinding}
 import akka.{Done, NotUsed}
-import akka.stream.scaladsl.{Flow, RunnableGraph, Sink, Source, Tcp}
+import akka.stream.scaladsl.{FileIO, Flow, RunnableGraph, Sink, Source, Tcp}
+import akka.util.ByteString
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -58,7 +61,11 @@ object StreamsMain extends App{
     ic.remoteAddress.getAddress.getHostAddress+":"+ic.remoteAddress.getPort
   })
 
-  tcpSource.via(addressFlow).runWith(Sink.foreach(println))
+  //tcpSource.via(addressFlow).runWith(Sink.foreach(println))
+
+  tcpSource.to(Sink.foreach(ic => {
+    ic.handleWith(Flow[ByteString].map(bs => bs.decodeString(Charset.defaultCharset()).toUpperCase).map(s => ByteString(s)))
+  })).run()
 
   //Thread.sleep(1000L)
   //system.terminate()
