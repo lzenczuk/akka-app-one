@@ -30,38 +30,7 @@ object OsmSegment {
 case class OsmSegment(status:OsmSegmentStatus, content:String)
 */
 
-trait OsmSegment {
-  def parse(line: String): OsmSegment
-  def content:String
-}
-case class Init() extends OsmSegment {
-  def parse(line: String): OsmSegment = {
-    line match {
-      case l if l.startsWith("\t<node") && l.endsWith("/>") => FullSegment(line)
-      case l if l.startsWith("\t<node") => OpenSegment(line)
-      case _ => Init()
-    }
-  }
 
-  def content = ""
-}
-case class FullSegment(content:String) extends OsmSegment{
-  def parse(line: String): OsmSegment = {
-    line match {
-      case l if l.startsWith("\t<node") && l.endsWith("/>") => FullSegment(line)
-      case l if l.startsWith("\t<node") => OpenSegment(line)
-      case _ => Init()
-    }
-  }
-}
-case class OpenSegment(content:String) extends OsmSegment {
-  def parse(line: String): OsmSegment = {
-    line match {
-      case l if line.contains("</node>") => FullSegment(content + line)
-      case _ => OpenSegment(content+line)
-    }
-  }
-}
 
 object OsmStream extends App {
   implicit private val system: ActorSystem = ActorSystem("osm-reading-system")
@@ -72,9 +41,17 @@ object OsmStream extends App {
 
   osmFile.toMat(javaInputStream)(Keep.both).run()*/
 
-  private val uncompressedOsmFileSource: Source[ByteString, Future[IOResult]] = StreamConverters.fromInputStream(() => new BZip2CompressorInputStream(new FileInputStream("/home/dev/Documents/osm/dublin/dublin_ireland.osm.bz2")))
+  private val uncompressedOsmFileSource: Source[ByteString, Future[IOResult]] =
+    StreamConverters.fromInputStream(() => new FileInputStream("/home/dev/Documents/osm/dublin/dublin_ireland.osm.bz2"))
+    .map(bs => {
+      println(s"------------> File read: ${bs.length}")
+      bs
+    })
 
-  private val bytesToStringLines: Flow[ByteString, String, NotUsed] = Framing.delimiter(ByteString("\n"), 1024).map(_.decodeString(Charset.defaultCharset()))
+  private val bytesToStringLines: Flow[ByteString, String, NotUsed] = Framing.delimiter(ByteString("\n"), 1024).map(bs => {
+    println(s"---------------> frame: ${bs.length}")
+    bs.decodeString(Charset.defaultCharset())
+  })
 
   /*
   val groupNodes: Flow[String, String, NotUsed] = Flow[String].scan((0, ""))((tup, line) => tup match {
@@ -88,17 +65,20 @@ object OsmStream extends App {
    */
 
   val groupNodes: Flow[String, String, NotUsed] = Flow[String]
-    .scan(Init().asInstanceOf[OsmSegment])((segment:OsmSegment, line:String) => segment.parse(line))
+    .scan(Idle().asInstanceOf[OsmSegment])((segment:OsmSegment, line:String) => segment.parse(line))
     .filter(s => s.isInstanceOf[FullSegment]).map(s => s.content)
 
   private val osmStream: RunnableGraph[Future[IOResult]] =
     uncompressedOsmFileSource
       .via(bytesToStringLines)
       .via(groupNodes)
-      .via(Flow[String].limit(1000))
-      .to(Sink.foreach(line => println(s"Line: $line")))
+      .to(Sink.foreach(line => {}))
 
   osmStream.run().andThen{
+    case Success(ioResult) =>
+      println(s"Success read: ${ioResult.count/1048576} MB")
+    case Failure(throwable) => println(s"Error: ${throwable.getMessage}")
+  }.andThen{
     case _ => system.terminate()
   }
 
