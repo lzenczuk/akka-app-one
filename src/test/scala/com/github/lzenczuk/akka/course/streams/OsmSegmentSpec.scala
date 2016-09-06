@@ -48,9 +48,9 @@ class OsmSegmentSpec extends FlatSpec with Matchers{
     val nextSegment5: OsmSegment = nextSegment4.parse(line5)
 
     nextSegment1 should be (OpenSegment(NodeElementString, line1))
-    nextSegment2 should be (OpenSegment(NodeElementString, line1+line2))
-    nextSegment3 should be (OpenSegment(NodeElementString, line1+line2+line3))
-    nextSegment4 should be (FullSegment(line1+line2+line3+line4))
+    nextSegment2 should be (OpenSegment(NodeElementString, List(line1,line2).mkString("\n")))
+    nextSegment3 should be (OpenSegment(NodeElementString, List(line1,line2,line3).mkString("\n")))
+    nextSegment4 should be (FullSegment(List(line1,line2,line3,line4).mkString("\n")))
     nextSegment5 should be (FullSegment(line5))
   }
 
@@ -70,9 +70,9 @@ class OsmSegmentSpec extends FlatSpec with Matchers{
     val nextSegment5: OsmSegment = nextSegment4.parse(line5)
 
     nextSegment1 should be (OpenSegment(WayElementString, line1))
-    nextSegment2 should be (OpenSegment(WayElementString, line1+line2))
-    nextSegment3 should be (OpenSegment(WayElementString, line1+line2+line3))
-    nextSegment4 should be (FullSegment(line1+line2+line3+line4))
+    nextSegment2 should be (OpenSegment(WayElementString, List(line1,line2).mkString("\n")))
+    nextSegment3 should be (OpenSegment(WayElementString, List(line1,line2,line3).mkString("\n")))
+    nextSegment4 should be (FullSegment(List(line1,line2,line3,line4).mkString("\n")))
     nextSegment5 should be (FullSegment(line5))
   }
 
@@ -93,9 +93,9 @@ class OsmSegmentSpec extends FlatSpec with Matchers{
 
     nextSegment1 should be (FullSegment(line1))
     nextSegment2 should be (OpenSegment(WayElementString, line2))
-    nextSegment3 should be (OpenSegment(WayElementString, line2+line3))
-    nextSegment4 should be (OpenSegment(WayElementString, line2+line3+line4))
-    nextSegment5 should be (FullSegment(line2+line3+line4+line5))
+    nextSegment3 should be (OpenSegment(WayElementString, List(line2,line3).mkString("\n")))
+    nextSegment4 should be (OpenSegment(WayElementString, List(line2,line3,line4).mkString("\n")))
+    nextSegment5 should be (FullSegment(List(line2,line3,line4,line5).mkString("\n")))
   }
 
   "Idle OsmSegments" should "parse multiple lines of osm relation segment" in {
@@ -114,10 +114,9 @@ class OsmSegmentSpec extends FlatSpec with Matchers{
     val nextSegment5: OsmSegment = nextSegment4.parse(line5)
 
     nextSegment1 should be (OpenSegment(RelationElementString, line1))
-    nextSegment2 should be (OpenSegment(RelationElementString, line1+line2))
-    nextSegment3 should be (OpenSegment(RelationElementString, line1+line2+line3))
-    nextSegment4 should be (FullSegment(line1+line2+line3+line4))
+    nextSegment2 should be (OpenSegment(RelationElementString, List(line1,line2).mkString("\n")))
+    nextSegment3 should be (OpenSegment(RelationElementString, List(line1,line2,line3).mkString("\n")))
+    nextSegment4 should be (FullSegment(List(line1,line2,line3,line4).mkString("\n")))
     nextSegment5 should be (FullSegment(line5))
   }
-
 }

@@ -25,12 +25,8 @@ object OsmSegment {
 }
 
 trait OsmSegment {
-  def parse(line: String): OsmSegment
   def content:String
-}
-case class Idle() extends OsmSegment {
   def parse(line: String): OsmSegment = {
-
     line match {
       case l if l.startsWith(s"\t<${NodeElementString.elementString}") && l.endsWith("/>") => FullSegment(line)
       case l if l.startsWith(s"\t<${NodeElementString.elementString}") => OpenSegment(NodeElementString, line)
@@ -41,29 +37,20 @@ case class Idle() extends OsmSegment {
       case _ => Idle()
     }
   }
+}
 
+case class Idle() extends OsmSegment {
   def content = ""
 }
-case class FullSegment(content:String) extends OsmSegment{
-  def parse(line: String): OsmSegment = {
 
-    line match {
-      case l if l.startsWith(s"\t<${NodeElementString.elementString}") && l.endsWith("/>") => FullSegment(line)
-      case l if l.startsWith(s"\t<${NodeElementString.elementString}") => OpenSegment(NodeElementString, line)
-      case l if l.startsWith(s"\t<${WayElementString.elementString}") && l.endsWith("/>") => FullSegment(line)
-      case l if l.startsWith(s"\t<${WayElementString.elementString}") => OpenSegment(WayElementString, line)
-      case l if l.startsWith(s"\t<${RelationElementString.elementString}") && l.endsWith("/>") => FullSegment(line)
-      case l if l.startsWith(s"\t<${RelationElementString.elementString}") => OpenSegment(RelationElementString, line)
-      case _ => Idle()
-    }
-  }
-}
+case class FullSegment(content:String) extends OsmSegment{}
+
 case class OpenSegment(es:ElementString, content:String) extends OsmSegment {
-  def parse(line: String): OsmSegment = {
+  override def parse(line: String): OsmSegment = {
 
     line match {
-      case l if line.contains(s"</${es.elementString}>") => FullSegment(content + line)
-      case _ => OpenSegment(es, content+line)
+      case l if line.contains(s"</${es.elementString}>") => FullSegment(content + "\n" +line)
+      case _ => OpenSegment(es, content + "\n" + line)
     }
   }
 }
